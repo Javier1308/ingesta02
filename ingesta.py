@@ -1,6 +1,6 @@
 import boto3
 import csv
-import mysql.connect
+import mysql.connector
 
 # Conexión a la base de datos MySQL
 conexion = mysql.connector.connect(
