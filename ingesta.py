@@ -1,36 +1,47 @@
-import boto3
-import csv
 import mysql.connector
+import pandas as pd
+import boto3
 
-# Conexión a la base de datos MySQL
-conexion = mysql.connector.connect(
-    host="54.152.40.39",      # Dirección del servidor MySQL
-    user=3307,   # Tu usuario de MySQL
-    password=1234,  # Tu contraseña de MySQL
-    database="empresa"  # Tu base de datos
-)
+# Reemplaza esto con la IP privada de la MV donde corre MySQL
+MYSQL_HOST = '172.31.28.34'  # <-- reemplaza esto
+MYSQL_PORT = 8005
 
-# Crear un cursor
-cursor = conexion.cursor()
+DB_CONFIG = {
+    'host': MYSQL_HOST,
+    'port': MYSQL_PORT,
+    'user': 'root',
+    'password': 'utec',
+    'database': 'bd_api_employees'
+}
 
-# Consultar todos los registros de la tabla
-cursor.execute("SELECT * FROM personas")
+CSV_FILENAME = 'data.csv'
+BUCKET_NAME = 'jos-output-1'
+S3_KEY = 'data.csv'
 
-# Obtener todos los registros
-registros = cursor.fetchall()
+def conectar_mysql():
+    return mysql.connector.connect(**DB_CONFIG)
 
-# Guardar los registros en un archivo CSV
-ficheroUpload = "data.csv"
-with open(ficheroUpload, mode='w', newline='') as file:
-    writer = csv.writer(file)
-    # Escribir los nombres de las columnas (si es necesario)
-    writer.writerow([i[0] for i in cursor.description])  
-    # Escribir los registros
-    writer.writerows(registros)
+def exportar_a_csv(conexion):
+    query = "SELECT * FROM employees"
+    df = pd.read_sql(query, conexion)
+    df.to_csv(CSV_FILENAME, index=False)
+    print(f"✅ Datos exportados a {CSV_FILENAME}")
 
-# Subir el archivo CSV a un bucket S3
-nombreBucket = "jos-output-1"
-s3 = boto3.client('s3')
-response = s3.upload_file(ficheroUpload, nombreBucket, ficheroUpload)
+def subir_a_s3():
+    s3 = boto3.client('s3')
+    s3.upload_file(CSV_FILENAME, BUCKET_NAME, S3_KEY)
+    print(f"✅ Archivo {CSV_FILENAME} subido al bucket S3 '{BUCKET_NAME}'")
 
-print("Ingesta completada")
+def main():
+    try:
+        conexion = conectar_mysql()
+        exportar_a_csv(conexion)
+        subir_a_s3()
+    except Exception as e:
+        print(f"❌ Error: {e}")
+    finally:
+        if 'conexion' in locals() and conexion.is_connected():
+            conexion.close()
+
+if _name_ == "_main_":
+    main()
