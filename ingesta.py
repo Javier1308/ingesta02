@@ -18,19 +18,23 @@ CSV_FILENAME = 'data.csv'
 BUCKET_NAME = 'jos-output-1'
 S3_KEY = 'data.csv'
 
+
 def conectar_mysql():
     return mysql.connector.connect(**DB_CONFIG)
+
 
 def exportar_a_csv(conexion):
     query = "SELECT * FROM employees"
     df = pd.read_sql(query, conexion)
     df.to_csv(CSV_FILENAME, index=False)
-    print(f"✅ Datos exportados a {CSV_FILENAME}")
+    print(f"✅ Datos exportados a {CSV_FILENAME}:")
+
 
 def subir_a_s3():
     s3 = boto3.client('s3')
     s3.upload_file(CSV_FILENAME, BUCKET_NAME, S3_KEY)
     print(f"✅ Archivo {CSV_FILENAME} subido al bucket S3 '{BUCKET_NAME}'")
+
 
 def main():
     try:
@@ -43,5 +47,6 @@ def main():
         if 'conexion' in locals() and conexion.is_connected():
             conexion.close()
 
-if _name_ == "_main_":
+
+if __name__ == "__main__":
     main()
